@@ -25,7 +25,13 @@ var reservations = window.reservations = (function () {
 	var loadDB = function () {
 		log("loading reservDB...");
 		var player;
-		checkIfLoaded(player = window.modelDataService.getPlayer(), function () {
+		checkIfLoaded(function () {
+			player = window.modelDataService.getPlayer();
+			if (player && player.data)
+				return true;
+			else
+				return false;
+		}, function () {
 			var charData = player.data.selectedCharacter.data;
 			charId = charData.character_id;
 			charName = charData.character_name;
@@ -134,7 +140,7 @@ var reservations = window.reservations = (function () {
 						window.messagingService.reply(msg.id, send_msg + (send_msg + JSON.stringify(msg)).hash);
 					} else {
 						if (confirm("Deseja apagar as reservas dessa messagem?")) {
-							send_msg = "/stopreserv ";
+							send_msg = "/cleanreserv ";
 
 							delete db.messages[data.message_id];
 							for (var vid in db.reservations) {
@@ -144,7 +150,7 @@ var reservations = window.reservations = (function () {
 								}
 							}
 						} else {
-							send_msg = "/cleanreserv ";
+							send_msg = "/stopreserv ";
 
 						}
 						window.messagingService.reply(msg.id, send_msg + (send_msg + JSON.stringify(msg)).hash);
@@ -247,7 +253,7 @@ var reservations = window.reservations = (function () {
 							timeout += (2000 + Math.round(Math.random() * 4000));
 						}
 					}
-					
+
 				}
 				break;
 		}
@@ -289,7 +295,7 @@ var reservations = window.reservations = (function () {
 
 	var onAttachGroupToVillage = function (groupId, villageId) {
 		log("onAttachGroupToVillage", groupId, villageId);
-		if (grpReserv.id == groupId) return false;
+		//if (grpReserv.id == groupId) return false;
 		if (grpMyReserv.id != groupId) return true;
 		var msg_id = parseInt($("#reservMsgs").val());
 		if (!msg_id) {
@@ -317,7 +323,7 @@ var reservations = window.reservations = (function () {
 
 	var onDettachGroupToVillage = function (groupId, villageId) {
 		log("onDettachGroupToVillage", groupId, villageId);
-		if (grpReserv.id == groupId) return false;
+		//if (grpReserv.id == groupId) return false;
 		if (grpMyReserv.id != groupId) return true;
 		$("#reservMsgs").removeAttr('disabled');
 		
@@ -365,6 +371,7 @@ var reservations = window.reservations = (function () {
 			loadServices();
 			loadDB();
 			setNewHandlers();
+			setGroups();
 			log("Reservations for TW2 loaded.");
 		});
 	};
