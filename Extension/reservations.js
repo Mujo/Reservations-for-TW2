@@ -128,15 +128,28 @@ var reservations = window.reservations = (function () {
 						active: 0
 					};
 					msg.active = reservActive.attr("class")[0].split(" ").find(i => i == "icon-26x26-checkbox-checked") ? 1 : 0;
-					if (!msg.active && confirm("Deseja apagar as reservas dessa messagem?")) {
-						delete db.messages[data.message_id];
-						for (var vid in db.reservations) {
-							if (db.reservations[vid].msg_id === data.message_id) {
+					var send_msg;
+					if (msg.active) {
+						send_msg = "/startreserv ";
+						window.messagingService.reply(msg.id, send_msg + (send_msg + JSON.stringify(msg)).hash);
+					} else {
+						if (confirm("Deseja apagar as reservas dessa messagem?")) {
+							send_msg = "/stopreserv ";
 
-								delete db.reservations[vid];
+							delete db.messages[data.message_id];
+							for (var vid in db.reservations) {
+								if (db.reservations[vid].msg_id === data.message_id) {
+
+									delete db.reservations[vid];
+								}
 							}
+						} else {
+							send_msg = "/cleanreserv ";
+
 						}
+						window.messagingService.reply(msg.id, send_msg + (send_msg + JSON.stringify(msg)).hash);
 					}
+
 					saveDB();
 				});
 			}
@@ -145,13 +158,13 @@ var reservations = window.reservations = (function () {
 
 	var onNewMessage = function (event, data) {
 		log(event, data);
-				
+
 		var params = data.message.content.split(" ");
 		var command = params[0].slice(1);
 		var char_id = data.message.character_id;
 		var char_name = data.message.character_name;
 		var msg_id = data.message_id;
-		var village_id, dt, sec_hash, reserv;
+		var village_id, dt, sec_hash, reserv, msg;
 
 		switch (command) {
 			case "addreserv":
@@ -184,6 +197,59 @@ var reservations = window.reservations = (function () {
 					window.gameDettachGroupToVillage(grpReserv.id, village_id);
 				}
 				break;
+
+			case "startreserv":
+				msg = {
+					id: data.message_id,
+					title: data.title,
+					author_id: data.author_id,
+					active: 1
+				};
+				if (!msg) break;
+
+				if (sec_hash === ("/startreserv " + JSON.stringify(msg)).hash) {
+					db.messages[data.message_id] = msg;
+					saveDB();
+				}
+				break;
+
+			case "stopreserv":
+				msg = db.messages[data.message_id];
+				if (!msg) break;
+
+				if (sec_hash === ("/stopreserv " + JSON.stringify(msg)).hash) {
+					msg.active = 0;
+					saveDB();
+				}
+				break;
+
+			case "cleanreserv":
+				msg = db.messages[data.message_id];
+				if (!msg) break;
+
+				if (sec_hash === ("/cleanreserv " + JSON.stringify(msg)).hash) {
+					delete db.messages[data.message_id];
+					var timeout = 4000;
+					for (var vid in db.reservations) {
+						var ismine = db.reservations[vid].char.id === charId;
+						if (db.reservations[vid]) {
+							setTimeout(function () {
+								if (ismine) {
+									window.gameDettachGroupToVillage(grpMyReserv.id, vid);
+									delete db.reservations[vid];
+									saveDB();
+								} else {
+									window.gameDettachGroupToVillage(grpReserv.id, vid);
+									delete db.reservations[vid];
+									saveDB();
+								}
+							}, timeout);
+							timeout += (2000 + Math.round(Math.random() * 4000));
+						}
+					}
+					
+				}
+				break;
 		}
 	};
 
@@ -202,7 +268,7 @@ var reservations = window.reservations = (function () {
 
 			grps = window.groupService.getGroups();
 			getGroups(grps);
-		}			
+		}
 	}
 
 	var getGroups = function (groups) {
@@ -243,7 +309,6 @@ var reservations = window.reservations = (function () {
 		
 		// propagate reservation for message
 		var msg = "/addreserv " + villageId.zip() + " " + reserv.dt.zip() + " ";
-
 		window.messagingService.reply(reserv.msg_id, msg + (msg + JSON.stringify(reserv)).hash);
 
 		$("#reservMsgs").attr('disabled', 'disabled');
