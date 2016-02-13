@@ -3,7 +3,6 @@
 var reservations = window.reservations = (function () {
 	var debug = true,
 		reservGroupIcons = [1290, 2570],
-		//reservGroupIds,
 		grpReserv,
 		grpMyReserv,
 		charId,
@@ -53,7 +52,6 @@ var reservations = window.reservations = (function () {
 		window.groupService = window.injector.get('groupService');
 		window.eventTypeProvider = window.injector.get('eventTypeProvider');
 		window.messagingService = window.injector.get('messagingService');
-		window.socketModelService = window.injector.get('socketModelService');
 	}
 
 	var setNewHandlers = function () {
@@ -295,7 +293,6 @@ var reservations = window.reservations = (function () {
 
 	var onAttachGroupToVillage = function (groupId, villageId) {
 		log("onAttachGroupToVillage", groupId, villageId);
-		//if (grpReserv.id == groupId) return false;
 		if (grpMyReserv.id != groupId) return true;
 		var msg_id = parseInt($("#reservMsgs").val());
 		if (!msg_id) {
@@ -323,7 +320,6 @@ var reservations = window.reservations = (function () {
 
 	var onDettachGroupToVillage = function (groupId, villageId) {
 		log("onDettachGroupToVillage", groupId, villageId);
-		//if (grpReserv.id == groupId) return false;
 		if (grpMyReserv.id != groupId) return true;
 		$("#reservMsgs").removeAttr('disabled');
 		
