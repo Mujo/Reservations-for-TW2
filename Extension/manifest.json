@@ -1,0 +1,35 @@
+{
+	"manifest_version": 2,
+	"name": "Reservations for Tribal Wars 2",
+	"description": "Organize village reservations between tribes, using game message and group system.",
+	"version": "0.1.0.7",
+	"content_scripts": [
+		{
+			"js": [
+				"load.js"
+			],
+			"matches": [
+				"https://*.tribalwars2.com/*"
+			],
+			"run_at": "document_idle"
+		}
+	],
+	// "background": {
+	// 	"scripts": [
+	// 		"background.js"
+	// 	]
+	// 	//"persistent": false
+	// },
+	"web_accessible_resources": [
+		"utils.js",
+		"reservations.js"
+	],
+	"permissions": [
+		"https://*.tribalwars2.com/*"
+		// "storage",
+		// "tabs"
+	],
+	"icons": {
+		"128": "skills.png"
+	}
+}
