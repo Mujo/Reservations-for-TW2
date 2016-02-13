@@ -12,12 +12,6 @@ var reservations = window.reservations = (function () {
 
 	var db = function () {
 		return {
-			// 			setReserv: function () {
-			// 
-			// 			},
-			// 			getReserv: function (message_id) {
-			// 				return this.messages[message_id];
-			// 			},
 			messages: {},
 			reservations: {}
 		};
@@ -111,11 +105,7 @@ var reservations = window.reservations = (function () {
 	var onMessageLoaded = function (event, data) {
 		log("onMessageView", event, data);
 		checkIfLoaded('[ng-controller="MessageViewController"] ul.list-center', function () {
-			//window.MessageViewController = window.angular.element($('[ng-controller="MessageViewController"]')).scope();
-			//checkIfLoaded(window.MessageViewController && window.MessageViewController.conversation, function () {
-			//var conversation = window.MessageViewController.conversation;
 			var msg_owner = (data.author_id === charId);
-			//var msgReserv = db.getReserv(data.message_id);
 			var msg = db.messages[data.message_id];
 			var reservMsgBtn = $(".reserv-msg-btn");
 			var reservActive = reservMsgBtn.children(":first");
@@ -128,7 +118,6 @@ var reservations = window.reservations = (function () {
 				reservActive.addClass("icon-26x26-checkbox" + ((msg && msg.active) ? "-checked" : ""));
 			}
 			reservMsgBtn.off("click");
-			//log(msg_owner, charId);
 			if (msg_owner) {
 				reservMsgBtn.click(function () {
 					reservActive.toggleClass("icon-26x26-checkbox").toggleClass("icon-26x26-checkbox-checked");
@@ -147,14 +136,10 @@ var reservations = window.reservations = (function () {
 								delete db.reservations[vid];
 							}
 						}
-						// TODO: propagate to msg the delete command.
 					}
 					saveDB();
 				});
 			}
-
-			//});
-
 		});
 	}
 

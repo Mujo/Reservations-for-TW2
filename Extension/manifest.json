@@ -14,20 +14,12 @@
 			"run_at": "document_idle"
 		}
 	],
-	// "background": {
-	// 	"scripts": [
-	// 		"background.js"
-	// 	]
-	// 	//"persistent": false
-	// },
 	"web_accessible_resources": [
 		"utils.js",
 		"reservations.js"
 	],
 	"permissions": [
 		"https://*.tribalwars2.com/*"
-		// "storage",
-		// "tabs"
 	],
 	"icons": {
 		"128": "skills.png"
