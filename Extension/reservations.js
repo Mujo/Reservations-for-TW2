@@ -264,7 +264,8 @@ var reservations = window.reservations = (function () {
 			log("groups not found.");
 			if (grps.length > 8) {
 				log("no space for new groups. deleting the last ones.");
-				Object.keys(grps).slice(8).forEach(e => window.groupService.destroyGroup(e));
+				if(confirm("A extensão de reservas precisa liberar espaço para 2 grupos. Deseja apagar os ultimos? (se preferir apagar manualmente, cancele agora, apague, e de refresh no jogo)."))
+					Object.keys(grps).slice(8).forEach(e => window.groupService.destroyGroup(e));
 			}
 			log("creating groups...");
 			window.groupService.createGroup(reservGroupIcons[0], "Minha Reserva");
