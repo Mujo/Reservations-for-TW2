@@ -163,17 +163,18 @@ var reservations = window.reservations = (function () {
 	var onNewMessage = function (event, data) {
 		log(event, data);
 
-		var params = data.message.content.split(" ");
+		var params = data.message.content.trim().split(" ");
 		var command = params[0].slice(1);
 		var char_id = data.message.character_id;
 		var char_name = data.message.character_name;
 		var msg_id = data.message_id;
 		var village_id, dt, sec_hash, reserv, msg;
 
+		//log(params, command, char_id, char_name)
 		switch (command) {
 			case "addreserv":
-				village_id = params[1];
-				dt = params[2];
+				village_id = params[1].unzip();
+				dt = params[2].unzip();
 				sec_hash = params[3];
 				if (db.reservations[village_id]) break;
 				reserv = {
@@ -184,7 +185,7 @@ var reservations = window.reservations = (function () {
 					},
 					msg_id: msg_id
 				};
-				if (sec_hash === ("/addreserv " + village_id + " " + dt + " " + JSON.stringify(reserv)).hash) {
+				if (sec_hash === ("/addreserv " + village_id.zip() + " " + dt.zip() + " " + JSON.stringify(reserv)).hash) {
 					db.reservations[village_id] = reserv;
 					saveDB();
 					window.gameAttachGroupToVillage(grpReserv.id, village_id);
@@ -192,10 +193,10 @@ var reservations = window.reservations = (function () {
 				break;
 
 			case "remreserv":
-				village_id = params[1];
+				village_id = params[1].unzip();
 				if (!db.reservations[village_id]) break;
 				reserv = db.reservations[village_id];
-				if (sec_hash === ("/remreserv " + village_id + " " + JSON.stringify(reserv)).hash) {
+				if (sec_hash === ("/remreserv " + village_id.zip() + " " + JSON.stringify(reserv)).hash) {
 					delete db.reservations[village_id];
 					saveDB();
 					window.gameDettachGroupToVillage(grpReserv.id, village_id);
@@ -209,7 +210,7 @@ var reservations = window.reservations = (function () {
 					author_id: data.author_id,
 					active: 1
 				};
-				if (!msg) break;
+				//if (!msg) break;
 
 				if (sec_hash === ("/startreserv " + JSON.stringify(msg)).hash) {
 					db.messages[data.message_id] = msg;
@@ -233,7 +234,7 @@ var reservations = window.reservations = (function () {
 
 				if (sec_hash === ("/cleanreserv " + JSON.stringify(msg)).hash) {
 					delete db.messages[data.message_id];
-					var timeout = 4000;
+					var timeout = (2000 + Math.round(Math.random() * 4000));
 					for (var vid in db.reservations) {
 						var ismine = db.reservations[vid].char.id === charId;
 						if (db.reservations[vid]) {
