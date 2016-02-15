@@ -1,5 +1,4 @@
-﻿/* global chrome */
-// Reservations for TW2
+﻿// Reservations for TW2
 var reservations = window.reservations = (function () {
 	var debug = true,
 		reservGroupIcons = [1290, 2570],
@@ -9,17 +8,18 @@ var reservations = window.reservations = (function () {
 		charName,
 		worldId;
 
+	var log = function () {
+		if (debug)
+			console.log.apply(console, arguments);
+	};
+	
+	// DATABASE
 	var db = function () {
 		return {
 			messages: {},
 			reservations: {}
 		};
 	} ();
-
-	var log = function () {
-		if (debug)
-			console.log.apply(console, arguments);
-	};
 
 	var loadDB = function () {
 		log("loading reservDB...");
@@ -46,7 +46,8 @@ var reservations = window.reservations = (function () {
 		localStorage["reservDB_" + worldId + "_" + charId] = JSON.stringify(db);
 		log("reservDB saved.");
 	}
-
+	
+	// SET Services and Handlers
 	var loadServices = function () {
 		window.modelDataService = window.injector.get('modelDataService');
 		window.groupService = window.injector.get('groupService');
@@ -62,6 +63,8 @@ var reservations = window.reservations = (function () {
 		messageViewHandler();
 	}
 
+
+	// Handlers
 	var newMessageHandler = function () {
 		window.BottomInterfaceController = window.angular.element($('[ng-controller="BottomInterfaceController"]')).scope();
 		window.BottomInterfaceController.$on(window.eventTypeProvider.MESSAGE_NEW, onNewMessage);
@@ -106,6 +109,7 @@ var reservations = window.reservations = (function () {
 		});
 	}
 
+	// Messages
 	var onMessageLoaded = function (event, data) {
 		log("onMessageView", event, data);
 		checkIfLoaded('[ng-controller="MessageViewController"] ul.list-center', function () {
@@ -161,14 +165,13 @@ var reservations = window.reservations = (function () {
 	}
 
 	var onNewMessage = function (event, data) {
-		log(event, data);
 
 		var params = data.message.content.trim().split(" ");
 		var command = params[0].slice(1);
 		var char_id = data.message.character_id;
 		var char_name = data.message.character_name;
 		var msg_id = data.message_id;
-		var village_id, dt, sec_hash, reserv, msg;
+		var village_id, dt, sec_hash, reserv, msg, reservMsgBtn, reservActive;
 
 		//log(params, command, char_id, char_name)
 		switch (command) {
@@ -185,6 +188,7 @@ var reservations = window.reservations = (function () {
 					},
 					msg_id: msg_id
 				};
+				log("addreserv", data, village_id, dt, sec_hash, reserv);
 				if (sec_hash === ("/addreserv " + village_id.zip() + " " + dt.zip() + " " + JSON.stringify(reserv)).hash) {
 					db.reservations[village_id] = reserv;
 					saveDB();
@@ -194,9 +198,11 @@ var reservations = window.reservations = (function () {
 
 			case "remreserv":
 				village_id = params[1].unzip();
+				sec_hash = params[2];
 				if (!db.reservations[village_id]) break;
 				reserv = db.reservations[village_id];
-				if (sec_hash === ("/remreserv " + village_id.zip() + " " + JSON.stringify(reserv)).hash) {
+				log("remreserv", data, village_id, sec_hash, reserv, char_id);
+				if (sec_hash === ("/remreserv " + village_id.zip() + " " + JSON.stringify(reserv)).hash && reserv.char.id === char_id) {
 					delete db.reservations[village_id];
 					saveDB();
 					window.gameDettachGroupToVillage(grpReserv.id, village_id);
@@ -207,32 +213,44 @@ var reservations = window.reservations = (function () {
 				msg = {
 					id: data.message_id,
 					title: data.title,
-					author_id: data.author_id,
+					author_id: char_id,
 					active: 1
 				};
-				//if (!msg) break;
-
+				sec_hash = params[1];
+				log("startreserv", data, sec_hash, reserv);
 				if (sec_hash === ("/startreserv " + JSON.stringify(msg)).hash) {
 					db.messages[data.message_id] = msg;
 					saveDB();
+					
+					if ($(".reserv-msg-btn").length) {
+						reservMsgBtn = $(".reserv-msg-btn");
+						reservActive = reservMsgBtn.children(":first");
+						reservActive.removeClass("icon-26x26-checkbox").addClass("icon-26x26-checkbox-checked");
+					}
 				}
 				break;
 
 			case "stopreserv":
 				msg = db.messages[data.message_id];
 				if (!msg) break;
-
-				if (sec_hash === ("/stopreserv " + JSON.stringify(msg)).hash) {
+				sec_hash = params[1];
+				if (sec_hash === ("/stopreserv " + JSON.stringify(msg)).hash && msg.author_id === char_id) {
 					msg.active = 0;
 					saveDB();
+
+					if ($(".reserv-msg-btn").length) {
+						reservMsgBtn = $(".reserv-msg-btn");
+						reservActive = reservMsgBtn.children(":first");
+						reservActive.addClass("icon-26x26-checkbox").removeClass("icon-26x26-checkbox-checked");
+					}
 				}
 				break;
 
 			case "cleanreserv":
 				msg = db.messages[data.message_id];
 				if (!msg) break;
-
-				if (sec_hash === ("/cleanreserv " + JSON.stringify(msg)).hash) {
+				sec_hash = params[1];
+				if (sec_hash === ("/cleanreserv " + JSON.stringify(msg)).hash && msg.author_id === char_id) {
 					delete db.messages[data.message_id];
 					var timeout = (2000 + Math.round(Math.random() * 4000));
 					for (var vid in db.reservations) {
@@ -241,13 +259,18 @@ var reservations = window.reservations = (function () {
 							setTimeout(function () {
 								if (ismine) {
 									window.gameDettachGroupToVillage(grpMyReserv.id, vid);
-									delete db.reservations[vid];
-									saveDB();
 								} else {
 									window.gameDettachGroupToVillage(grpReserv.id, vid);
-									delete db.reservations[vid];
-									saveDB();
 								}
+								delete db.reservations[vid];
+								saveDB();
+
+								if ($(".reserv-msg-btn").length) {
+									var reservMsgBtn = $(".reserv-msg-btn");
+									var reservActive = reservMsgBtn.children(":first");
+									reservActive.addClass("icon-26x26-checkbox").removeClass("icon-26x26-checkbox-checked");
+								}
+
 							}, timeout);
 							timeout += (2000 + Math.round(Math.random() * 4000));
 						}
@@ -258,6 +281,7 @@ var reservations = window.reservations = (function () {
 		}
 	};
 
+	// Groups
 	var setGroups = function () {
 		var grps = window.groupService.getGroups();
 		getGroups(grps);
@@ -365,6 +389,7 @@ var reservations = window.reservations = (function () {
 		});
 	};
 
+	// Init
 	var init = function () {
 		checkIfLoaded('[ng-controller="BottomInterfaceController"]', function () {
 			log("loading Reservations for TW2...");

@@ -1,4 +1,3 @@
-/* global chrome */
 function injectJs(link) {
         var scr = document.createElement("script");
         scr.type="text/javascript";
@@ -9,6 +8,7 @@ function injectJs(link) {
 //console.log('chrome.runtime.onMessage', chrome.runtime.onMessage);
 injectJs(chrome.extension.getURL("utils.js"));
 injectJs(chrome.extension.getURL("reservations.js"));
+var private = {};
 
 //window.chrome = chrome;
 // chrome.runtime.onMessage.addListener(function (msg, sender, callback) {
