@@ -388,6 +388,15 @@ var reservations = window.reservations = (function () {
 			}
 		});
 	};
+	
+	var cleanDB = function () {
+		for (var r in db.reservations){
+			var msg_id = db.reservations[r].msg_id;
+			if(!db.messages[msg_id])
+				delete db.reservations[r];
+		}
+		saveDB();
+	}
 
 	// Init
 	var init = function () {
@@ -395,6 +404,7 @@ var reservations = window.reservations = (function () {
 			log("loading Reservations for TW2...");
 			loadServices();
 			loadDB();
+			cleanDB();
 			setNewHandlers();
 			setGroups();
 			log("Reservations for TW2 loaded.");
