@@ -143,12 +143,20 @@ var reservations = window.reservations = (function () {
 					} else {
 						if (confirm("Deseja apagar as reservas dessa messagem?")) {
 							send_msg = "/cleanreserv ";
-
 							delete db.messages[data.message_id];
+							var timeout = (2000 + Math.round(Math.random() * 4000));
 							for (var vid in db.reservations) {
+								var ismine = db.reservations[vid].char.id === charId;
 								if (db.reservations[vid].msg_id === data.message_id) {
-
+									setTimeout(function (village_id) {
+										if (ismine) {
+											window.gameDettachGroupToVillage(grpMyReserv.id, village_id);
+										} else {
+											window.gameDettachGroupToVillage(grpReserv.id, village_id);
+										}
+									}, timeout, vid);
 									delete db.reservations[vid];
+									timeout += (2000 + Math.round(Math.random() * 4000));
 								}
 							}
 						} else {
@@ -191,7 +199,6 @@ var reservations = window.reservations = (function () {
 				log("addreserv", data, village_id, dt, sec_hash, reserv);
 				if (sec_hash === ("/addreserv " + village_id.zip() + " " + dt.zip() + " " + JSON.stringify(reserv)).hash) {
 					db.reservations[village_id] = reserv;
-					saveDB();
 					window.gameAttachGroupToVillage(grpReserv.id, village_id);
 				}
 				break;
@@ -204,7 +211,6 @@ var reservations = window.reservations = (function () {
 				log("remreserv", data, village_id, sec_hash, reserv, char_id);
 				if (sec_hash === ("/remreserv " + village_id.zip() + " " + JSON.stringify(reserv)).hash && reserv.char.id === char_id) {
 					delete db.reservations[village_id];
-					saveDB();
 					window.gameDettachGroupToVillage(grpReserv.id, village_id);
 				}
 				break;
@@ -217,11 +223,10 @@ var reservations = window.reservations = (function () {
 					active: 1
 				};
 				sec_hash = params[1];
-				log("startreserv", data, sec_hash, reserv);
+				log("startreserv", data, sec_hash, msg);
 				if (sec_hash === ("/startreserv " + JSON.stringify(msg)).hash) {
 					db.messages[data.message_id] = msg;
-					saveDB();
-					
+
 					if ($(".reserv-msg-btn").length) {
 						reservMsgBtn = $(".reserv-msg-btn");
 						reservActive = reservMsgBtn.children(":first");
@@ -234,9 +239,9 @@ var reservations = window.reservations = (function () {
 				msg = db.messages[data.message_id];
 				if (!msg) break;
 				sec_hash = params[1];
+				log("stopreserv", data, sec_hash, msg);
 				if (sec_hash === ("/stopreserv " + JSON.stringify(msg)).hash && msg.author_id === char_id) {
 					msg.active = 0;
-					saveDB();
 
 					if ($(".reserv-msg-btn").length) {
 						reservMsgBtn = $(".reserv-msg-btn");
@@ -250,35 +255,33 @@ var reservations = window.reservations = (function () {
 				msg = db.messages[data.message_id];
 				if (!msg) break;
 				sec_hash = params[1];
+				log("cleanreserv", data, sec_hash, msg);
 				if (sec_hash === ("/cleanreserv " + JSON.stringify(msg)).hash && msg.author_id === char_id) {
 					delete db.messages[data.message_id];
 					var timeout = (2000 + Math.round(Math.random() * 4000));
 					for (var vid in db.reservations) {
 						var ismine = db.reservations[vid].char.id === charId;
-						if (db.reservations[vid]) {
-							setTimeout(function () {
+						if (db.reservations[vid].msg_id === data.message_id) {
+							setTimeout(function (village_id) {
 								if (ismine) {
-									window.gameDettachGroupToVillage(grpMyReserv.id, vid);
+									window.gameDettachGroupToVillage(grpMyReserv.id, village_id);
 								} else {
-									window.gameDettachGroupToVillage(grpReserv.id, vid);
+									window.gameDettachGroupToVillage(grpReserv.id, village_id);
 								}
-								delete db.reservations[vid];
-								saveDB();
-
-								if ($(".reserv-msg-btn").length) {
-									var reservMsgBtn = $(".reserv-msg-btn");
-									var reservActive = reservMsgBtn.children(":first");
-									reservActive.addClass("icon-26x26-checkbox").removeClass("icon-26x26-checkbox-checked");
-								}
-
-							}, timeout);
+							}, timeout, vid);
+							delete db.reservations[vid];
 							timeout += (2000 + Math.round(Math.random() * 4000));
 						}
 					}
-
+					if ($(".reserv-msg-btn").length) {
+						reservMsgBtn = $(".reserv-msg-btn");
+						reservActive = reservMsgBtn.children(":first");
+						reservActive.addClass("icon-26x26-checkbox").removeClass("icon-26x26-checkbox-checked");
+					}
 				}
 				break;
 		}
+		saveDB();
 	};
 
 	// Groups
@@ -388,11 +391,11 @@ var reservations = window.reservations = (function () {
 			}
 		});
 	};
-	
+
 	var cleanDB = function () {
-		for (var r in db.reservations){
+		for (var r in db.reservations) {
 			var msg_id = db.reservations[r].msg_id;
-			if(!db.messages[msg_id])
+			if (!db.messages[msg_id])
 				delete db.reservations[r];
 		}
 		saveDB();
