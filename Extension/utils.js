@@ -4,7 +4,7 @@ var base256 = (function (alpha) {
 	return {
 		encode: function (enc) {
 			enc = parseInt(enc);
-			if (typeof enc !== 'number' || enc !== parseInt(enc))
+			if (typeof enc !== 'number')
 				//throw '"encode" only accepts integers.';
 				return '';
 			var encoded = '';
@@ -32,57 +32,43 @@ var base256 = (function (alpha) {
 	};
 })();
 
-Object.defineProperty(String.prototype, "hash", {
-	get: function hash() {
+var hash = function hash(str) {
 		/*jshint bitwise:false */
 		var i, l, hval = 0x811c9dc5;
 
-		for (i = 0, l = this.length; i < l; i++) {
-			hval ^= this.charCodeAt(i);
-			hval += (hval << 1) + (hval << 4) + (hval << 7) + (hval << 8) + (hval << 24);
+		for (i = 0, l = str.length; i < l; i++) {
+		hval ^= str.charCodeAt(i);
+		hval += (hval << 1) + (hval << 4) + (hval << 7) + (hval << 8) + (hval << 24);
 		}
 
 		// Convert to 8 digit hex string
-		return (hval >>> 0).zip(4);
-		//return ("0000000" + (hval >>> 0).toString(16)).substr(-8);
-	}
-});
-
-String.prototype.pad = function (l) {
-	return (new Array(l + 1).join("0") + this).slice(-l);
+		return zip(hval >>> 0, 4);
 }
 
-String.prototype.chunk = function (size) {
-	var chunks = new Array(this.length / size + .5 | 0),
+var pad = function (str, l) {
+	return (new Array(l + 1).join("0") + str).slice(-l);
+}
+
+
+var chunk = function (str, size) {
+	var chunks = new Array(str.length / size + .5 | 0),
 		nChunks = chunks.length;
 
 	var newo = 0;
 	for (var i = 0, o = 0; i < nChunks; ++i, o = newo) {
 		newo += size;
-		chunks[i] = this.substr(o, size);
+		chunks[i] = str.substr(o, size);
 	}
 
 	return chunks;
 }
 
-Object.defineProperty(Number.prototype, "smallDate", {
-	get: function smallDate() {
-		return (this / 1000 / 60 / 60 / 24 | 0).zip(2);
-	}
-});
-
-Object.defineProperty(String.prototype, "largeDate", {
-	get: function largeDate() {
-		return (this).unzip() * 1000 * 60 * 60 * 24;
-	}
-});
-
-Number.prototype.zip = function (l) {
-	return (l) ? base256.encode(this).pad(l) : base256.encode(this);
+var zip = function (num, l) {
+	return (l) ? pad(base256.encode(num), l) : base256.encode(num);
 }
 
-String.prototype.unzip = function () {
-	return base256.decode(this);
+var unzip = function (str) {
+	return base256.decode(str);
 }
 
 var checkIfLoaded = function (selector, callback) {

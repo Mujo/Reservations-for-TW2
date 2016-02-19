@@ -139,31 +139,31 @@ var reservations = window.reservations = (function () {
 					var send_msg;
 					if (msg.active) {
 						send_msg = "/startreserv ";
-						window.messagingService.reply(msg.id, send_msg + (send_msg + JSON.stringify(msg)).hash);
+						window.messagingService.reply(msg.id, send_msg + hash(send_msg + JSON.stringify(msg)));
 					} else {
 						if (confirm("Deseja apagar as reservas dessa messagem?")) {
 							send_msg = "/cleanreserv ";
 							delete db.messages[data.message_id];
 							var timeout = (2000 + Math.round(Math.random() * 4000));
 							for (var vid in db.reservations) {
-								var ismine = db.reservations[vid].char.id === charId;
+								var isMine = db.reservations[vid].char.id === charId;
 								if (db.reservations[vid].msg_id === data.message_id) {
-									setTimeout(function (village_id) {
-										if (ismine) {
-											window.gameDettachGroupToVillage(grpMyReserv.id, village_id);
+
+									setTimeout(function (isMine, dettachVillage, myReservId, reservId, villageId) {
+										if (isMine) {
+											dettachVillage(myReservId, villageId);
 										} else {
-											window.gameDettachGroupToVillage(grpReserv.id, village_id);
+											dettachVillage(reservId, villageId);
 										}
-									}, timeout, vid);
+									}, timeout, isMine, window.gameDettachGroupToVillage, grpMyReserv.id, grpReserv.id, vid);
 									delete db.reservations[vid];
 									timeout += (2000 + Math.round(Math.random() * 4000));
 								}
 							}
 						} else {
 							send_msg = "/stopreserv ";
-
 						}
-						window.messagingService.reply(msg.id, send_msg + (send_msg + JSON.stringify(msg)).hash);
+						window.messagingService.reply(msg.id, send_msg + hash(send_msg + JSON.stringify(msg)));
 					}
 
 					saveDB();
@@ -184,8 +184,8 @@ var reservations = window.reservations = (function () {
 		//log(params, command, char_id, char_name)
 		switch (command) {
 			case "addreserv":
-				village_id = params[1].unzip();
-				dt = params[2].unzip();
+				village_id = unzip(params[1]);
+				dt = unzip(params[2]);
 				sec_hash = params[3];
 				if (db.reservations[village_id]) break;
 				reserv = {
@@ -197,20 +197,22 @@ var reservations = window.reservations = (function () {
 					msg_id: msg_id
 				};
 				log("addreserv", data, village_id, dt, sec_hash, reserv);
-				if (sec_hash === ("/addreserv " + village_id.zip() + " " + dt.zip() + " " + JSON.stringify(reserv)).hash) {
+				if (sec_hash === hash("/addreserv " + zip(village_id) + " " + zip(dt) + " " + JSON.stringify(reserv))) {
 					db.reservations[village_id] = reserv;
+					saveDB();
 					window.gameAttachGroupToVillage(grpReserv.id, village_id);
 				}
 				break;
 
 			case "remreserv":
-				village_id = params[1].unzip();
+				village_id = unzip(params[1]);
 				sec_hash = params[2];
 				if (!db.reservations[village_id]) break;
 				reserv = db.reservations[village_id];
 				log("remreserv", data, village_id, sec_hash, reserv, char_id);
-				if (sec_hash === ("/remreserv " + village_id.zip() + " " + JSON.stringify(reserv)).hash && reserv.char.id === char_id) {
+				if (sec_hash === hash("/remreserv " + zip(village_id) + " " + JSON.stringify(reserv)) && reserv.char.id === char_id) {
 					delete db.reservations[village_id];
+					saveDB();
 					window.gameDettachGroupToVillage(grpReserv.id, village_id);
 				}
 				break;
@@ -224,9 +226,9 @@ var reservations = window.reservations = (function () {
 				};
 				sec_hash = params[1];
 				log("startreserv", data, sec_hash, msg);
-				if (sec_hash === ("/startreserv " + JSON.stringify(msg)).hash) {
+				if (sec_hash === hash("/startreserv " + JSON.stringify(msg))) {
 					db.messages[data.message_id] = msg;
-
+					saveDB();
 					if ($(".reserv-msg-btn").length) {
 						reservMsgBtn = $(".reserv-msg-btn");
 						reservActive = reservMsgBtn.children(":first");
@@ -240,9 +242,9 @@ var reservations = window.reservations = (function () {
 				if (!msg) break;
 				sec_hash = params[1];
 				log("stopreserv", data, sec_hash, msg);
-				if (sec_hash === ("/stopreserv " + JSON.stringify(msg)).hash && msg.author_id === char_id) {
+				if (sec_hash === hash("/stopreserv " + JSON.stringify(msg)) && msg.author_id === char_id) {
 					msg.active = 0;
-
+					saveDB();
 					if ($(".reserv-msg-btn").length) {
 						reservMsgBtn = $(".reserv-msg-btn");
 						reservActive = reservMsgBtn.children(":first");
@@ -256,23 +258,24 @@ var reservations = window.reservations = (function () {
 				if (!msg) break;
 				sec_hash = params[1];
 				log("cleanreserv", data, sec_hash, msg);
-				if (sec_hash === ("/cleanreserv " + JSON.stringify(msg)).hash && msg.author_id === char_id) {
+				if (sec_hash === hash("/cleanreserv " + JSON.stringify(msg)) && msg.author_id === char_id) {
 					delete db.messages[data.message_id];
 					var timeout = (2000 + Math.round(Math.random() * 4000));
 					for (var vid in db.reservations) {
-						var ismine = db.reservations[vid].char.id === charId;
+						var isMine = db.reservations[vid].char.id === charId;
 						if (db.reservations[vid].msg_id === data.message_id) {
-							setTimeout(function (village_id) {
-								if (ismine) {
-									window.gameDettachGroupToVillage(grpMyReserv.id, village_id);
+							setTimeout(function (isMine, dettachVillage, myReservId, reservId, villageId) {
+								if (isMine) {
+									dettachVillage(myReservId, villageId);
 								} else {
-									window.gameDettachGroupToVillage(grpReserv.id, village_id);
+									dettachVillage(reservId, villageId);
 								}
-							}, timeout, vid);
+							}, timeout, isMine, window.gameDettachGroupToVillage, grpMyReserv.id, grpReserv.id, vid);
 							delete db.reservations[vid];
 							timeout += (2000 + Math.round(Math.random() * 4000));
 						}
 					}
+					saveDB();
 					if ($(".reserv-msg-btn").length) {
 						reservMsgBtn = $(".reserv-msg-btn");
 						reservActive = reservMsgBtn.children(":first");
@@ -281,7 +284,7 @@ var reservations = window.reservations = (function () {
 				}
 				break;
 		}
-		saveDB();
+
 	};
 
 	// Groups
@@ -342,8 +345,8 @@ var reservations = window.reservations = (function () {
 		saveDB();
 		
 		// propagate reservation for message
-		var msg = "/addreserv " + villageId.zip() + " " + reserv.dt.zip() + " ";
-		window.messagingService.reply(reserv.msg_id, msg + (msg + JSON.stringify(reserv)).hash);
+		var msg = "/addreserv " + zip(villageId) + " " + zip(reserv.dt) + " ";
+		window.messagingService.reply(reserv.msg_id, msg + hash(msg + JSON.stringify(reserv)));
 
 		$("#reservMsgs").attr('disabled', 'disabled');
 		return true;
@@ -357,8 +360,8 @@ var reservations = window.reservations = (function () {
 		// propagate delete for message
 		var reserv = db.reservations[villageId];
 		if (reserv) {
-			var msg = "/remreserv " + villageId.zip() + " ";
-			window.messagingService.reply(reserv.msg_id, msg + (msg + JSON.stringify(reserv)).hash);
+			var msg = "/remreserv " + zip(villageId) + " ";
+			window.messagingService.reply(reserv.msg_id, msg + hash(msg + JSON.stringify(reserv)));
 		}
 
 		delete db.reservations[villageId];
