@@ -1,61 +1,62 @@
 ﻿// Reservations for TW2
-var reservations = window.reservations = (function () {
+var reservations = window.reservations = (function() {
 	var debug = true,
-		reservGroupIcons = [1290, 2570],
+		reservGroupIcons = [1802, 2570],
 		grpReserv,
 		grpMyReserv,
 		charId,
 		charName,
-		worldId;
+		worldId,
+		dbversion = 1;
 
-	var log = function () {
+	var log = function() {
 		if (debug)
 			console.log.apply(console, arguments);
 	};
-	
-	// DATABASE
-	var db = function () {
+
+	// Database
+	var db = function() {
 		return {
 			messages: {},
 			reservations: {}
 		};
 	} ();
 
-	var loadDB = function () {
+	var loadDB = function() {
 		log("loading reservDB...");
 		var player;
-		checkIfLoaded(function () {
+		checkIfLoaded(function() {
 			player = window.modelDataService.getPlayer();
 			if (player && player.data)
 				return true;
 			else
 				return false;
-		}, function () {
+		}, function() {
 			var charData = player.data.selectedCharacter.data;
 			charId = charData.character_id;
 			charName = charData.character_name;
 			worldId = charData.world_id;
-			var localDbMsgs = localStorage["reservDB_" + worldId + "_" + charId];
+			var localDbMsgs = localStorage["reservDB_v" + dbversion + "_" + worldId + "_" + charId];
 			db = (localDbMsgs) ? JSON.parse(localDbMsgs) : db;
 			log("reservDB loaded.");
 		});
 	}
 
-	var saveDB = function () {
+	var saveDB = function() {
 		log("saving reservDB...");
-		localStorage["reservDB_" + worldId + "_" + charId] = JSON.stringify(db);
+		localStorage["reservDB_v" + dbversion + "_" + worldId + "_" + charId] = JSON.stringify(db);
 		log("reservDB saved.");
 	}
-	
+
 	// SET Services and Handlers
-	var loadServices = function () {
+	var loadServices = function() {
 		window.modelDataService = window.injector.get('modelDataService');
 		window.groupService = window.injector.get('groupService');
 		window.eventTypeProvider = window.injector.get('eventTypeProvider');
 		window.messagingService = window.injector.get('messagingService');
 	}
 
-	var setNewHandlers = function () {
+	var setNewHandlers = function() {
 		newMessageHandler();
 		openGroupsHandler();
 		attachGroupHandler();
@@ -63,56 +64,55 @@ var reservations = window.reservations = (function () {
 		messageViewHandler();
 	}
 
-
 	// Handlers
-	var newMessageHandler = function () {
+	var newMessageHandler = function() {
 		window.BottomInterfaceController = window.angular.element($('[ng-controller="BottomInterfaceController"]')).scope();
 		window.BottomInterfaceController.$on(window.eventTypeProvider.MESSAGE_NEW, onNewMessage);
 	}
 
-	var openGroupsHandler = function () {
+	var openGroupsHandler = function() {
 		window.gameOpenGroupsIndexModal = window.groupService.openGroupsIndexModal;
-		window.groupService.openGroupsIndexModal = function (villageId, villageName) {
+		window.groupService.openGroupsIndexModal = function(villageId, villageName) {
 			window.gameOpenGroupsIndexModal(villageId, villageName);
 			onOpenGroupsIndexModal(villageId, villageName);
 		};
 	};
 
-	var attachGroupHandler = function () {
+	var attachGroupHandler = function() {
 		window.gameAttachGroupToVillage = window.groupService.attachGroupToVillage;
-		window.groupService.attachGroupToVillage = function (groupId, villageId) {
+		window.groupService.attachGroupToVillage = function(groupId, villageId) {
 			var success = onAttachGroupToVillage(groupId, villageId);
 			if (success) window.gameAttachGroupToVillage(groupId, villageId);
 		}
 	}
 
-	var dettachGroupHandler = function () {
+	var dettachGroupHandler = function() {
 		window.gameDettachGroupFromVillage = window.groupService.dettachGroupFromVillage;
-		window.groupService.dettachGroupFromVillage = function (groupId, villageId) {
-			var success = onDettachGroupToVillage(groupId, villageId);
+		window.groupService.dettachGroupFromVillage = function(groupId, villageId) {
+			var success = onDettachGroupFromVillage(groupId, villageId);
 			if (success) window.gameDettachGroupFromVillage(groupId, villageId);
 		}
 	}
 
-	var messageViewHandler = function () {
+	var messageViewHandler = function() {
 		window.gameOpenMessage = window.messagingService.openMessage;
-		window.messagingService.openMessage = function (id) {
+		window.messagingService.openMessage = function(id) {
 			window.gameOpenMessage(id);
 			onOpenMessage(id);
 		}
 	}
 
-	var onOpenMessage = function (id) {
-		checkIfLoaded('[ng-controller="MessageViewController"]', function () {
+	var onOpenMessage = function(id) {
+		checkIfLoaded('[ng-controller="MessageViewController"]', function() {
 			window.MessageViewController = window.angular.element($('[ng-controller="MessageViewController"]')).scope();
 			window.MessageViewController.$on(window.eventTypeProvider.MESSAGE_VIEW, onMessageLoaded);
 		});
 	}
 
 	// Messages
-	var onMessageLoaded = function (event, data) {
+	var onMessageLoaded = function(event, data) {
 		log("onMessageView", event, data);
-		checkIfLoaded('[ng-controller="MessageViewController"] ul.list-center', function () {
+		checkIfLoaded('[ng-controller="MessageViewController"] ul.list-center', function() {
 			var msg_owner = (data.author_id === charId);
 			var msg = db.messages[data.message_id];
 			var reservMsgBtn = $(".reserv-msg-btn");
@@ -127,13 +127,14 @@ var reservations = window.reservations = (function () {
 			}
 			reservMsgBtn.off("click");
 			if (msg_owner) {
-				reservMsgBtn.click(function () {
+				reservMsgBtn.click(function() {
 					reservActive.toggleClass("icon-26x26-checkbox").toggleClass("icon-26x26-checkbox-checked");
 					db.messages[data.message_id] = msg = msg || {
 						id: data.message_id,
 						title: data.title,
 						author_id: data.author_id,
-						active: 0
+						active: 0,
+						last: data.message_count + 1
 					};
 					msg.active = reservActive.attr("class")[0].split(" ").find(i => i == "icon-26x26-checkbox-checked") ? 1 : 0;
 					var send_msg;
@@ -149,13 +150,13 @@ var reservations = window.reservations = (function () {
 								var isMine = db.reservations[vid].char.id === charId;
 								if (db.reservations[vid].msg_id === data.message_id) {
 
-									setTimeout(function (isMine, dettachVillage, myReservId, reservId, villageId) {
+									setTimeout(function(isMine, dettachVillage, myReservId, reservId, villageId) {
 										if (isMine) {
 											dettachVillage(myReservId, villageId);
 										} else {
 											dettachVillage(reservId, villageId);
 										}
-									}, timeout, isMine, window.gameDettachGroupToVillage, grpMyReserv.id, grpReserv.id, vid);
+									}, timeout, isMine, window.gameDettachGroupFromVillage, grpMyReserv.id, grpReserv.id, vid);
 									delete db.reservations[vid];
 									timeout += (2000 + Math.round(Math.random() * 4000));
 								}
@@ -172,31 +173,42 @@ var reservations = window.reservations = (function () {
 		});
 	}
 
-	var onNewMessage = function (event, data) {
+	var onNewMessage = function(event, data) {
 
-		var params = data.message.content.trim().split(" ");
-		var command = params[0].slice(1);
-		var char_id = data.message.character_id;
-		var char_name = data.message.character_name;
-		var msg_id = data.message_id;
+		var options = {
+		 params: data.message.content.trim().split(" "),
+		 command: params[0].slice(1),
+		 char_id: data.message.character_id,
+		 char_name: data.message.character_name,
+		 msg_id:  data.message_id,
+		 title: data.title,
+		 last: data.message_count
+		};
+
+		execCommand(options);
+
+	}
+
+	var execCommand = function(options) {
+
 		var village_id, dt, sec_hash, reserv, msg, reservMsgBtn, reservActive;
 
 		//log(params, command, char_id, char_name)
-		switch (command) {
+		switch (options.command) {
 			case "addreserv":
-				village_id = unzip(params[1]);
-				dt = unzip(params[2]);
-				sec_hash = params[3];
+				village_id = unzip(options.params[1]);
+				dt = unzip(options.params[2]);
+				sec_hash = options.params[3];
 				if (db.reservations[village_id]) break;
 				reserv = {
 					dt: dt,
 					char: {
-						id: char_id,
-						name: char_name
+						id: options.char_id,
+						name: options.char_name
 					},
-					msg_id: msg_id
+					msg_id: options.msg_id
 				};
-				log("addreserv", data, village_id, dt, sec_hash, reserv);
+				log("addreserv", village_id, dt, sec_hash, reserv);
 				if (sec_hash === hash("/addreserv " + zip(village_id) + " " + zip(dt) + " " + JSON.stringify(reserv))) {
 					db.reservations[village_id] = reserv;
 					saveDB();
@@ -205,12 +217,12 @@ var reservations = window.reservations = (function () {
 				break;
 
 			case "remreserv":
-				village_id = unzip(params[1]);
-				sec_hash = params[2];
+				village_id = unzip(options.params[1]);
+				sec_hash = options.params[2];
 				if (!db.reservations[village_id]) break;
 				reserv = db.reservations[village_id];
-				log("remreserv", data, village_id, sec_hash, reserv, char_id);
-				if (sec_hash === hash("/remreserv " + zip(village_id) + " " + JSON.stringify(reserv)) && reserv.char.id === char_id) {
+				log("remreserv", village_id, sec_hash, reserv, options.char_id);
+				if (sec_hash === hash("/remreserv " + zip(village_id) + " " + JSON.stringify(reserv)) && reserv.char.id === options.char_id) {
 					delete db.reservations[village_id];
 					saveDB();
 					window.gameDettachGroupToVillage(grpReserv.id, village_id);
@@ -219,15 +231,16 @@ var reservations = window.reservations = (function () {
 
 			case "startreserv":
 				msg = {
-					id: data.message_id,
-					title: data.title,
-					author_id: char_id,
-					active: 1
+					id: options.msg_id,
+					title: options.title,
+					author_id: options.char_id,
+					active: 1,
+					last: options.last
 				};
-				sec_hash = params[1];
-				log("startreserv", data, sec_hash, msg);
+				sec_hash = options.params[1];
+				log("startreserv", sec_hash, msg);
 				if (sec_hash === hash("/startreserv " + JSON.stringify(msg))) {
-					db.messages[data.message_id] = msg;
+					db.messages[options.msg_id] = msg;
 					saveDB();
 					if ($(".reserv-msg-btn").length) {
 						reservMsgBtn = $(".reserv-msg-btn");
@@ -238,11 +251,11 @@ var reservations = window.reservations = (function () {
 				break;
 
 			case "stopreserv":
-				msg = db.messages[data.message_id];
+				msg = db.messages[options.msg_id];
 				if (!msg) break;
-				sec_hash = params[1];
-				log("stopreserv", data, sec_hash, msg);
-				if (sec_hash === hash("/stopreserv " + JSON.stringify(msg)) && msg.author_id === char_id) {
+				sec_hash = options.params[1];
+				log("stopreserv", sec_hash, msg);
+				if (sec_hash === hash("/stopreserv " + JSON.stringify(msg)) && msg.author_id === options.char_id) {
 					msg.active = 0;
 					saveDB();
 					if ($(".reserv-msg-btn").length) {
@@ -254,17 +267,17 @@ var reservations = window.reservations = (function () {
 				break;
 
 			case "cleanreserv":
-				msg = db.messages[data.message_id];
+				msg = db.messages[options.msg_id];
 				if (!msg) break;
-				sec_hash = params[1];
-				log("cleanreserv", data, sec_hash, msg);
-				if (sec_hash === hash("/cleanreserv " + JSON.stringify(msg)) && msg.author_id === char_id) {
-					delete db.messages[data.message_id];
+				sec_hash = options.params[1];
+				log("cleanreserv", sec_hash, msg);
+				if (sec_hash === hash("/cleanreserv " + JSON.stringify(msg)) && msg.author_id === optios.char_id) {
+					delete db.messages[options.msg_id];
 					var timeout = (2000 + Math.round(Math.random() * 4000));
 					for (var vid in db.reservations) {
 						var isMine = db.reservations[vid].char.id === charId;
-						if (db.reservations[vid].msg_id === data.message_id) {
-							setTimeout(function (isMine, dettachVillage, myReservId, reservId, villageId) {
+						if (db.reservations[vid].msg_id === msg_id) {
+							setTimeout(function(isMine, dettachVillage, myReservId, reservId, villageId) {
 								if (isMine) {
 									dettachVillage(myReservId, villageId);
 								} else {
@@ -284,18 +297,54 @@ var reservations = window.reservations = (function () {
 				}
 				break;
 		}
+	}
 
-	};
+	var readNewMessages = function() {
+		var newMessages = Object.keys(window.BottomInterfaceController.gameDataModel.data.newMessages);
+
+		for (var m in newMessages) {
+			window.messagingService.openMessage(parseInt(m));
+			checkIfLoaded('[ng-controller="MessageViewController"]', function() {
+				window.MessageViewController = window.angular.element($('[ng-controller="MessageViewController"]')).scope();
+				var conversation = window.MessageViewController.conversation;
+				window.MessageViewController.loadPosts(conversation, true, true);
+
+				checkIfLoaded(function() {
+					conversation = window.MessageViewController.conversation;
+					return conversation.messages.length === conversation.messageCount;
+				},
+					function() {
+						// fazer looping nas novas msgs e tratar os comandos encontrados.
+						
+						// var 
+						// var msgs = conversation.messages;
+						// var options = {
+						// 	params: data.message.content.trim().split(" "),
+						// 	command: params[0].slice(1),
+						// 	char_id: data.message.character_id,
+						// 	char_name: data.message.character_name,
+						// 	msg_id: data.message_id,
+						// 	title: data.title,
+						// 	last: data.message_count
+						// };
+
+						// execCommand(options);
+
+					});
+
+			});
+		}
+	}
 
 	// Groups
-	var setGroups = function () {
+	var setGroups = function() {
 		var grps = window.groupService.getGroups();
 		getGroups(grps);
 		if (!grpMyReserv || !grpReserv) {
 			log("groups not found.");
 			if (grps.length > 8) {
 				log("no space for new groups. deleting the last ones.");
-				if (confirm("A extensão de reservas precisa liberar espaço para 2 grupos. Deseja apagar os ultimos? (se preferir apagar manualmente, cancele agora, apague, e de refresh no jogo).")) {
+				if (confirm("A extensão de reservas precisa liberar espaço para 2 grupos. Deseja apagar os ultimos?")) {
 					Object.keys(grps).slice(8).forEach(e => window.groupService.destroyGroup(e));
 					return;
 				}
@@ -309,7 +358,7 @@ var reservations = window.reservations = (function () {
 		}
 	}
 
-	var getGroups = function (groups) {
+	var getGroups = function(groups) {
 		for (var g in groups) {
 			var grp = groups[g];
 			switch (grp.icon) {
@@ -325,7 +374,7 @@ var reservations = window.reservations = (function () {
 			log("groups found:", grpMyReserv, grpReserv);
 	}
 
-	var onAttachGroupToVillage = function (groupId, villageId) {
+	var onAttachGroupToVillage = function(groupId, villageId) {
 		log("onAttachGroupToVillage", groupId, villageId);
 		if (grpMyReserv.id != groupId) return true;
 		var msg_id = parseInt($("#reservMsgs").val());
@@ -343,7 +392,7 @@ var reservations = window.reservations = (function () {
 			msg_id: msg_id
 		};
 		saveDB();
-		
+
 		// propagate reservation for message
 		var msg = "/addreserv " + zip(villageId) + " " + zip(reserv.dt) + " ";
 		window.messagingService.reply(reserv.msg_id, msg + hash(msg + JSON.stringify(reserv)));
@@ -352,11 +401,11 @@ var reservations = window.reservations = (function () {
 		return true;
 	}
 
-	var onDettachGroupToVillage = function (groupId, villageId) {
-		log("onDettachGroupToVillage", groupId, villageId);
+	var onDettachGroupFromVillage = function(groupId, villageId) {
+		log("onDettachGroupFromVillage", groupId, villageId);
 		if (grpMyReserv.id != groupId) return true;
 		$("#reservMsgs").removeAttr('disabled');
-		
+
 		// propagate delete for message
 		var reserv = db.reservations[villageId];
 		if (reserv) {
@@ -369,15 +418,15 @@ var reservations = window.reservations = (function () {
 		return true;
 	}
 
-	var onOpenGroupsIndexModal = function (villageId, villageName) {
+	var onOpenGroupsIndexModal = function(villageId, villageName) {
 		setGroups();
 		log("onOpenGroupsIndexModal", villageId, villageName);
-		checkIfLoaded(".groups-index .box-paper .col-third", function () {
+		checkIfLoaded(".groups-index .box-paper .col-third", function() {
 			$(".groups-index .box-paper .col-third")
 				.append('<br/><table class="tbl-border-light">'
-					+ '<thead><tr><th class="ng-binding">Mensagem da reserva:</th></tr></thead>'
-					+ '<tbody><tr class="ng-scope"><td><span class="ng-binding"><select id="reservMsgs" /></span></td></tr></tbody>'
-					+ '</table>');
+				+ '<thead><tr><th class="ng-binding">Mensagem da reserva:</th></tr></thead>'
+				+ '<tbody><tr class="ng-scope"><td><span class="ng-binding"><select id="reservMsgs" /></span></td></tr></tbody>'
+				+ '</table>');
 			$("#reservMsgs").css({ width: "278px" });
 			$("#reservMsgs").append('<option value="0">Escolha uma mensagem p/ reserva</option>');
 			log("fetching messages with reservations.");
@@ -393,9 +442,9 @@ var reservations = window.reservations = (function () {
 				$("#reservMsgs").attr('disabled', 'disabled').val(reserv.msg_id);
 			}
 		});
-	};
+	}
 
-	var cleanDB = function () {
+	var cleanDB = function() {
 		for (var r in db.reservations) {
 			var msg_id = db.reservations[r].msg_id;
 			if (!db.messages[msg_id])
@@ -404,23 +453,28 @@ var reservations = window.reservations = (function () {
 		saveDB();
 	}
 
+	var eraseOldLocalDB = function() {
+		Object.keys(localStorage).filter(f => f.indexOf("reservDB_") > -1 && f.indexOf("reservDB_v" + dbversion + "_") < 0).forEach(e => localStorage.removeItem(e));
+	}
+
 	// Init
-	var init = function () {
-		checkIfLoaded('[ng-controller="BottomInterfaceController"]', function () {
+	var init = function() {
+		checkIfLoaded('[ng-controller="BottomInterfaceController"]', function() {
 			log("loading Reservations for TW2...");
 			loadServices();
 			loadDB();
+			eraseOldLocalDB();
 			cleanDB();
 			setNewHandlers();
 			setGroups();
 			log("Reservations for TW2 loaded.");
 		});
-	};
+	}
 
 	return {
 		Init: init,
 		get DB() { return db; }
-	};
+	}
 
 })();
 

@@ -2,14 +2,14 @@
 	"manifest_version": 2,
 	"name": "Reservations for Tribal Wars 2",
 	"description": "Organize village reservations between tribes, using game message and group system.",
-	"version": "0.1.6",
+	"version": "0.1.7",
 	"content_scripts": [
 		{
 			"js": [
 				"load.js"
 			],
 			"matches": [
-				"https://*.tribalwars2.com/*"
+				"https://*.tribalwars2.com/game.php*"
 			],
 			"run_at": "document_idle"
 		}
