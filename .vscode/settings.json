@@ -10,5 +10,7 @@
 				"url": "http://json.schemastore.org/chrome-manifest"
 			}
 		],
-		"editor.wrappingColumn": 0
+		"editor.wrappingColumn": 0,
+		"files.autoSave": "afterDelay",
+		"files.autoSaveDelay": 1000
 }

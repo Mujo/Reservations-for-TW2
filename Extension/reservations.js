@@ -1,6 +1,6 @@
 ﻿// Reservations for TW2
 var reservations = window.reservations = (function() {
-	var debug = true,
+	var debug = false,
 		reservGroupIcons = [1802, 2570],
 		grpReserv,
 		grpMyReserv,
@@ -134,7 +134,7 @@ var reservations = window.reservations = (function() {
 						title: data.title,
 						author_id: data.author_id,
 						active: 0,
-						last: data.message_count + 1
+						last: data.message_count - 1
 					};
 					msg.active = reservActive.attr("class")[0].split(" ").find(i => i == "icon-26x26-checkbox-checked") ? 1 : 0;
 					var send_msg;
@@ -142,7 +142,7 @@ var reservations = window.reservations = (function() {
 						send_msg = "/startreserv ";
 						window.messagingService.reply(msg.id, send_msg + hash(send_msg + JSON.stringify(msg)));
 					} else {
-						if (confirm("Deseja apagar as reservas dessa messagem?")) {
+						if (confirm("Deseja apagar as reservas dessa mensagem?")) {
 							send_msg = "/cleanreserv ";
 							delete db.messages[data.message_id];
 							var timeout = (2000 + Math.round(Math.random() * 4000));
@@ -176,25 +176,22 @@ var reservations = window.reservations = (function() {
 	var onNewMessage = function(event, data) {
 
 		var options = {
-		 params: data.message.content.trim().split(" "),
-		 command: params[0].slice(1),
-		 char_id: data.message.character_id,
-		 char_name: data.message.character_name,
-		 msg_id:  data.message_id,
-		 title: data.title,
-		 last: data.message_count
+			params: data.message.content.trim().split(" "),
+			char_id: data.message.character_id,
+			char_name: data.message.character_name,
+			msg_id: data.message_id,
+			title: data.title,
+			last: data.message_count - 1
 		};
 
 		execCommand(options);
-
 	}
 
 	var execCommand = function(options) {
 
 		var village_id, dt, sec_hash, reserv, msg, reservMsgBtn, reservActive;
-
-		//log(params, command, char_id, char_name)
-		switch (options.command) {
+		var command = options.params[0].slice(1);
+		switch (command) {
 			case "addreserv":
 				village_id = unzip(options.params[1]);
 				dt = unzip(options.params[2]);
@@ -271,12 +268,12 @@ var reservations = window.reservations = (function() {
 				if (!msg) break;
 				sec_hash = options.params[1];
 				log("cleanreserv", sec_hash, msg);
-				if (sec_hash === hash("/cleanreserv " + JSON.stringify(msg)) && msg.author_id === optios.char_id) {
+				if (sec_hash === hash("/cleanreserv " + JSON.stringify(msg)) && msg.author_id === options.char_id) {
 					delete db.messages[options.msg_id];
 					var timeout = (2000 + Math.round(Math.random() * 4000));
 					for (var vid in db.reservations) {
 						var isMine = db.reservations[vid].char.id === charId;
-						if (db.reservations[vid].msg_id === msg_id) {
+						if (db.reservations[vid].msg_id === options.msg_id) {
 							setTimeout(function(isMine, dettachVillage, myReservId, reservId, villageId) {
 								if (isMine) {
 									dettachVillage(myReservId, villageId);
@@ -314,24 +311,22 @@ var reservations = window.reservations = (function() {
 					return conversation.messages.length === conversation.messageCount;
 				},
 					function() {
-						// fazer looping nas novas msgs e tratar os comandos encontrados.
-						
-						// var 
-						// var msgs = conversation.messages;
-						// var options = {
-						// 	params: data.message.content.trim().split(" "),
-						// 	command: params[0].slice(1),
-						// 	char_id: data.message.character_id,
-						// 	char_name: data.message.character_name,
-						// 	msg_id: data.message_id,
-						// 	title: data.title,
-						// 	last: data.message_count
-						// };
+						var msg = db.messages[m];
 
-						// execCommand(options);
+						conversation.messages.filter((_, i) => i > msg.last || -1).forEach(e => {
+							msg = db.messages[m];
+							var options = {
+								params: e.content.trim().split(" "),
+								char_id: e.author.id,
+								char_name: e.author.name,
+								msg_id: m,
+								title: conversation.title,
+								last: conversation.messageCount - 1
+							};
 
+							execCommand(options);
+						});
 					});
-
 			});
 		}
 	}
