@@ -5,6 +5,7 @@ var base256 = (function (alpha) {
 		encode: function (enc) {
 			enc = parseInt(enc);
 			if (typeof enc !== 'number')
+				//throw '"encode" only accepts integers.';
 				return '';
 			var encoded = '';
 			while (enc) {
