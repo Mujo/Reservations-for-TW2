@@ -142,7 +142,7 @@ var reservations = window.reservations = (function() {
 						send_msg = "/startreserv ";
 						window.messagingService.reply(msg.id, send_msg + hash(send_msg + JSON.stringify(msg)));
 					} else {
-						if (confirm("Deseja apagar as reservas dessa mensagem?")) {
+						if (confirm("Do you like to exclude all reserves from this message? This action can not be undone!")) {
 							send_msg = "/cleanreserv ";
 							delete db.messages[data.message_id];
 							var timeout = (2000 + Math.round(Math.random() * 4000));
@@ -313,7 +313,7 @@ var reservations = window.reservations = (function() {
 					function() {
 						var msg = db.messages[m];
 
-						conversation.messages.filter((_, i) => i > msg.last || -1).forEach(e => {
+						conversation.messages.filter((_, i) => i > (msg.last || -1)).forEach(e => {
 							msg = db.messages[m];
 							var options = {
 								params: e.content.trim().split(" "),
@@ -334,23 +334,32 @@ var reservations = window.reservations = (function() {
 	// Groups
 	var setGroups = function() {
 		var grps = window.groupService.getGroups();
-		getGroups(grps);
-		if (!grpMyReserv || !grpReserv) {
-			log("groups not found.");
-			if (grps.length > 8) {
-				log("no space for new groups. deleting the last ones.");
-				if (confirm("A extensão de reservas precisa liberar espaço para 2 grupos. Deseja apagar os ultimos?")) {
-					Object.keys(grps).slice(8).forEach(e => window.groupService.destroyGroup(e));
-					return;
-				}
-			}
-			log("creating groups...");
-			window.groupService.createGroup(reservGroupIcons[0], "Minha Reserva");
-			window.groupService.createGroup(reservGroupIcons[1], "Reservada");
+		var grpsKeys = Object.keys(grps);
+		checkIfLoaded(
+			function() {
+				grps = window.groupService.getGroups();
+				grpsKeys = Object.keys(grps);
+				return grpsKeys.length > 0;
+			},
+			function() {
+				getGroups(grps);
+				if (!grpMyReserv || !grpReserv) {
+					log("groups not found.");
+					if (grpsKeys.length > 8) {
+						log("no space for new groups.");
+						if (confirm("Reservations for TW2 needs 2 space for new groups. Do you like to delete the last ones?")) {
+							log("deleting the last ones groups.");
+							grpsKeys.slice(8).forEach(e => window.groupService.destroyGroup(e));
+						}
+					}
+					log("creating groups...");
+					window.groupService.createGroup(reservGroupIcons[0], "My Reserve");
+					window.groupService.createGroup(reservGroupIcons[1], "Reserved");
 
-			grps = window.groupService.getGroups();
-			getGroups(grps);
-		}
+					grps = window.groupService.getGroups();
+					getGroups(grps);
+				}
+			});
 	}
 
 	var getGroups = function(groups) {
@@ -374,8 +383,9 @@ var reservations = window.reservations = (function() {
 		if (grpMyReserv.id != groupId) return true;
 		var msg_id = parseInt($("#reservMsgs").val());
 		if (!msg_id) {
-			alert("Selecione uma mensagem antes de reservar!");
-			return false;
+			//alert("Selecione uma mensagem antes de reservar!");
+			$("#reservMsgs").attr('disabled', 'disabled');
+			return true;
 		}
 		// save 
 		var reserv = db.reservations[villageId] = {
@@ -419,11 +429,11 @@ var reservations = window.reservations = (function() {
 		checkIfLoaded(".groups-index .box-paper .col-third", function() {
 			$(".groups-index .box-paper .col-third")
 				.append('<br/><table class="tbl-border-light">'
-				+ '<thead><tr><th class="ng-binding">Mensagem da reserva:</th></tr></thead>'
+				+ '<thead><tr><th class="ng-binding">Reserve message:</th></tr></thead>'
 				+ '<tbody><tr class="ng-scope"><td><span class="ng-binding"><select id="reservMsgs" /></span></td></tr></tbody>'
 				+ '</table>');
 			$("#reservMsgs").css({ width: "278px" });
-			$("#reservMsgs").append('<option value="0">Escolha uma mensagem p/ reserva</option>');
+			$("#reservMsgs").append('<option value="0">No reserve message set</option>');
 			log("fetching messages with reservations.");
 			for (var m in db.messages) {
 				var msg = db.messages[m];
@@ -454,16 +464,17 @@ var reservations = window.reservations = (function() {
 
 	// Init
 	var init = function() {
-		checkIfLoaded('[ng-controller="BottomInterfaceController"]', function() {
-			log("loading Reservations for TW2...");
-			loadServices();
-			loadDB();
-			eraseOldLocalDB();
-			cleanDB();
-			setNewHandlers();
-			setGroups();
-			log("Reservations for TW2 loaded.");
-		});
+		checkIfLoaded('[ng-controller="BottomInterfaceController"]',
+			function() {
+				log("loading Reservations for TW2...");
+				loadServices();
+				loadDB();
+				eraseOldLocalDB();
+				cleanDB();
+				setNewHandlers();
+				setGroups();
+				log("Reservations for TW2 loaded.");
+			});
 	}
 
 	return {
