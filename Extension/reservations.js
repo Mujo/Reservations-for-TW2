@@ -383,7 +383,6 @@ var reservations = window.reservations = (function() {
 		if (grpMyReserv.id != groupId) return true;
 		var msg_id = parseInt($("#reservMsgs").val());
 		if (!msg_id) {
-			//alert("Selecione uma mensagem antes de reservar!");
 			$("#reservMsgs").attr('disabled', 'disabled');
 			return true;
 		}
