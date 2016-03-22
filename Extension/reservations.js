@@ -1,6 +1,6 @@
 ﻿// Reservations for TW2
 var reservations = window.reservations = (function() {
-	var debug = false,
+	var debug = true,
 		reservGroupIcons = [1802, 2570],
 		grpReserv,
 		grpMyReserv,
@@ -442,8 +442,8 @@ var reservations = window.reservations = (function() {
 				}
 			}
 			var reserv = db.reservations[villageId];
-			if (reserv) {
-				$("#reservMsgs").attr('disabled', 'disabled').val(reserv.msg_id);
+			if (reserv || window.groupService.getVillageGroups(37042).find(f => f.id === grpMyReserv.id || f.id === grpReserv.id)) {
+				$("#reservMsgs").attr('disabled', 'disabled').val((reserv) ? reserv.msg_id : 0);
 			}
 		});
 	}
